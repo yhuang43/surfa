@@ -265,6 +265,28 @@ class FramedImage(FramedArray):
         else:
             return self[self.bbox(margin=margin)]
 
+        
+    """
+    surfa.Volume.resize() and freesurfer MRIupsampledN()/MRIdownsampleN() works differently.
+    
+    surfa.Volume.resize() logic:
+    1. keep the original image 'rotation' and 'center' parameters when computing the resampled image geom
+    2. resampled image crs0 remains the same as originial image. This may cause all voxels to be interpolated
+    3. force the originial and resampled image in the same RAS space when computing target-source vox2vox matrix
+    4. by default, 'linear' interpolation method is used
+ 
+    MRIupsampledN()/MRIdownsampleN() logic:
+    1. the RAS of a voxel is at the center of the voxel, so the image corner is located at CRS = [-.5 -.5 -.5]
+    2. the center of the resampled image crs0 = -0.5 + 1.0 / (2 * factor) in originial image voxel space (generally used in FS code)
+    3. the original and resampled images share the same RAS space (implicit)
+    4. the resampled image p0ras can be computed as p0ras = aff_orig @ crs0
+    5. re-compute the resampled image 'center' parameters after correcting p0ras of aff_resampled
+    6. The way the offset/center is set up, some voxels will fall in the same spot as the original volume which means they will not have any interpolation effects. 
+ 
+    The target vox2ras from surfa.Volume.resize() and freesurfer MRIupsampledN()/MRIdownsampleN() are different, 
+    but they share the same RAS space. Because the resulting target-source vox2vox is different, surfa.Volume.resize() 
+    interpolates the voxel values from locations that are different from MRIupsampledN()/MRIdownsampleN().
+    """
     def resize(self, voxsize, method='linear', copy=True):
         """
         Reslice image to a specified voxel size.
@@ -304,6 +326,11 @@ class FramedImage(FramedArray):
         target_shape = np.asarray(self.geom.voxsize, dtype='float') * baseshape3D / voxsize
         target_shape = tuple(np.ceil(target_shape).astype(int))
 
+        """
+        'target_geom' is computed differently than freesurfer MRIupsampledN()/MRIdownsampleN().
+        The resulting target-source vox2vox is different. surfa.Volume.resize() interpolates 
+        the voxel values from locations that are different from MRIupsampledN()/MRIdownsampleN()
+        """
         target_geom = ImageGeometry(
             shape=target_shape,
             voxsize=voxsize,
