@@ -268,3 +268,25 @@ class Warp(FramedImage):
         Set target (or fixed) image geometry. Invokes parent setter.
         """
         self.geom = value
+
+
+    @staticmethod
+    def warp_pointsets(warp, pointsets):
+        from scipy.interpolate import RegularGridInterpolator
+
+        data = warp.data
+        nx, ny, nz, _ = data.shape
+        grid = (np.arange(nx), np.arange(ny), np.arange(nz))
+
+        # interp(source_crs) = target crs
+        interp = [ RegularGridInterpolator(grid, data[..., k], bounds_error=False, fill_value=np.nan)
+                   for k in range(data.shape[-1]) ]
+
+        def _sample_warpfield(in_crs):
+            return np.array([f(in_crs) for f in interp])
+        
+        # input pointsets is [N, 3] array
+        pointsets = np.array([f(pointsets) for f in interp])
+        pointsets = pointsets.T   # [N, 3]
+
+        return pointsets
