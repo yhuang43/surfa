@@ -272,6 +272,10 @@ class Warp(FramedImage):
 
     @staticmethod
     def warp_pointsets(warp, pointsets):
+        # the input warp needs to be abs_crs data interpretation
+        if (warp.format != Warp.Format.abs_crs):
+            warp = warp.convert(format=Warp.Format.abs_crs)
+
         from scipy.interpolate import RegularGridInterpolator
 
         data = warp.data

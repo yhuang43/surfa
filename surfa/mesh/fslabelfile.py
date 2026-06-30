@@ -109,7 +109,7 @@ class FSLabelFile():
         
 
     # apply warp field to the coordinates
-    # 'warp' is the inverse (backward) warp field mapping from source (moving) to target (fixed)
+    # 'warp' is the inverse (backward) warp field mapping from target (fixed) to source (moving)
     def apply_warp(self, warp):
         # the coordinates needs to be FS_COORDS_VOXEL space assuming the warp in abs-crs
         if (self._coordspace != Space.FS_COORDS_VOXEL):
